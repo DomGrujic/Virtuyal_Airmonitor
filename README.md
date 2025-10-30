@@ -2,7 +2,8 @@
 
 IoT air-quality monitoring project with a Flask API (Python), Tuya device integration, a simple web frontend, and generated documentation with Doxygen.
 
-Authors: Alina Stieger & Dominik Grujic • Abschlussprojekt LBS4
+Authors: Alina S. & Dominik Grujic \
+This was a final project for the LBS4 (Vocational School)
 
 ## Overview
 
@@ -127,4 +128,4 @@ The frontend is a set of static HTML/CSS/JS files calling the Flask API. You can
 
 ---
 
-© 2025 Virtuyal – Alina Stieger & Dominik Grujic
+© 2025 Virtuyal – Alina S. & Dominik Grujic
