@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Virtuyal Luftmessung</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Virtuyal Luftmessung</h1>
+  </header>
+  <main>
+    <div class="sensor-card auth-card">
+      <h2 id="form-title">Login</h2>
+      <form id="auth-form">
+        <div class="form-group">
+          <label for="email">E-Mail</label>
+          <input type="email" id="email" placeholder="E-Mail" required>
+        </div>
+          <div class="form-group hidden" id="username-group">
+          <label for="username">Benutzername</label>
+          <input type="text" id="username" placeholder="Benutzername">
+        </div>
+        <div class="form-group" id="password-group">
+          <label for="password" id="password-label">Passwort: mindestens 8 Zeichen, Groß- und Kleinbuchstaben sowie Zahlen</label>
+          <input type="password" id="password" placeholder="Passwort" required>
+        </div>
+        <div class="form-group hidden" id="confirm-group">
+          <label for="confirm-password">Passwort bestätigen</label>
+          <input type="password" id="confirm-password" placeholder="Passwort bestätigen">
+        </div>
+        <div class="form-group hidden" id="reset-code-group">
+          <label for="reset-code">Bestätigungscode</label>
+          <input type="text" id="reset-code" placeholder="Code eingeben">
+        </div>
+        <button type="submit" class="btn">Anmelden</button>
+      </form>
+      <p id="toggle-text">
+        Noch kein Konto? <a href="#" id="toggle-link">Jetzt registrieren</a>
+      </p>
+      <p id="forgot-wrap"><a href="#" id="forgot-link">Passwort vergessen?</a></p>
+      <p id="cancel-reset-wrap" class="hidden"><a href="#" id="cancel-reset-link">Abbrechen</a></p>
+    </div>
+  </main>
+
+  <footer>
+    &copy; 2025 Virtuyal Luftmessung
+  </footer>
+
+  <script src="LoginLogic.js" defer></script>
+</body>
+</html>

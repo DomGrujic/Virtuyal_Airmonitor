@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+pythonfiles/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+env/
+venv/
+virtuyalEnv/
+
+# Env files
+.env
+
+# VSCode
+.vscode/
+
+# Other
+*.log
+snapshot.json
+pythonfiles/Doxyfile
+pythonfiles/html/
+pythonfiles/latex/
+*.json

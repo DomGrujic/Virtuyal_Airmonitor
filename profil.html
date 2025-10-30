@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profil | Virtuyal</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="alternate icon" href="/favicon.svg" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Dein Profil</h1>
+    <div class="header-actions">
+        <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+      <button type="button" class="icon-btn" id="backBtn" title="Zurück" aria-label="Zurück zur Übersicht">⟵</button>
+    </div>
+  </header>
+
+  <main class="profile-main" style="max-width:800px;">
+    <div class="sensor-card" style="margin-bottom:1.5rem;">
+      <h2>Benutzerinformationen</h2>
+      <div id="userInfo" class="profile-info"></div>
+    </div>
+
+    <div class="sensor-card" style="margin-bottom:1.5rem;">
+      <h2>Passwort zurücksetzen</h2>
+      <form id="pwResetForm">
+        <div class="form-grid">
+          <label>E-Mail
+            <input type="email" id="pwEmail" placeholder="dein@example.com" required />
+          </label>
+        </div>
+        <div class="modal-actions" style="margin-top:.5rem;">
+          <button type="submit" class="btn" id="pwResetBtn" style="width:auto;">Reset-Link senden</button>
+        </div>
+        <div class="modal-hint-row" style="display:flex; align-items:center; gap:.5rem; margin-top:.6rem;">
+          <p class="modal-hint" id="pwResetHint" style="margin:0; font-size:.85rem; color:var(--color-text-soft,#666);"></p>
+          <span id="pwResetSpinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+        </div>
+        <p style="margin-top:.5rem; font-size:.8rem; color:var(--color-text-soft,#666);">Wir senden dir eine E-Mail mit einem Link zum Zurücksetzen deines Passworts.</p>
+      </form>
+    </div>
+
+    <div class="sensor-card" id="adminCard">
+      <h2>Adminbereich</h2>
+      <p style="margin-top:0;">Rolle setzen (Admin oder Gast) für eine E-Mail-Adresse.</p>
+      <form id="adminRoleForm">
+        <div class="form-grid">
+          <label>E-Mail der Person
+            <input type="email" id="adminEmail" placeholder="person@example.com" required />
+          </label>
+          <label>Rolle
+            <div style="display:flex; gap:1rem; align-items:center; padding:.4rem 0;">
+              <label style="display:flex; align-items:center; gap:.35rem;"><input type="radio" name="role" value="admin" checked /> Admin</label>
+              <label style="display:flex; align-items:center; gap:.35rem;"><input type="radio" name="role" value="guest" /> Gast</label>
+            </div>
+          </label>
+        </div>
+        <div class="modal-actions" style="margin-top:.5rem;">
+          <button class="btn" type="submit" id="adminRoleBtn">Rolle setzen</button>
+        </div>
+        <div class="modal-hint-row" style="display:flex; align-items:center; gap:.5rem; margin-top:.6rem;">
+          <p class="modal-hint" id="adminRoleHint" style="margin:0; font-size:.85rem; color:var(--color-text-soft,#666);"></p>
+          <span id="adminRoleSpinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+        </div>
+      </form>
+    </div>
+
+    <div class="sensor-card" id="thresholdCard" style="margin-top:1.5rem;">
+      <h2>Schwellwert-Benachrichtigungen</h2>
+      <p>
+        Hier kannst du festlegen, welche Benutzer E-Mail-Warnungen bei
+        Grenzwertüberschreitungen erhalten.
+      </p>
+      <div id="thresholdList" style="margin-top:.6rem;">
+      </div>
+      <form id="thresholdForm" class="form-grid" style="margin-top:1rem;">
+        <label>E-Mail hinzufügen:
+          <input
+            type="email"
+            id="thresholdEmail"
+            placeholder="benutzer@example.com"
+            required
+          />
+        </label>
+        <div class="modal-actions" style="margin-top:.5rem;">
+          <button class="btn" type="submit">Empfänger hinzufügen</button>
+        </div>
+      </form>
+      <p
+        id="thresholdHint"
+        style="font-size:.85rem; margin-top:.5rem; color:var(--color-text-soft,#888);"
+      ></p>
+    </div>
+
+
+    <div class="sensor-card" id="smtpCard" style="margin-top:1.5rem;">
+      <h2>SMTP Konfiguration</h2>
+      <p style="margin-top:0;">Hier kannst du den SMTP-Server und Port ändern.</p>
+      <form id="smtpForm">
+        <div class="form-grid">
+          <label>Server
+            <input type="text" id="smtpServer" placeholder="smtp.example.com" required />
+          </label>
+          <label>Port
+            <input type="number" id="smtpPort" placeholder="465" required />
+          </label>
+        </div>
+        <div class="modal-actions" style="margin-top:.5rem;">
+          <button class="btn" type="submit" id="smtpSaveBtn">Speichern</button>
+        </div>
+        <div class="modal-hint-row" style="display:flex; align-items:center; gap:.5rem; margin-top:.6rem;">
+          <p class="modal-hint" id="smtpHint" style="margin:0; font-size:.85rem; color:var(--color-text-soft,#666);"></p>
+          <span id="smtpSpinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+        </div>
+      </form>
+    </div>
+
+  </main>
+
+  <footer>&copy; 2025 Virtuyal Luftmessung</footer>
+
+  <script>
+  const baseUrl = (window.location && window.location.origin ? window.location.origin : '') + '/api';
+    const logoutBtn = document.getElementById('logoutBtn');
+    // Check if user is logged in, redirect if not
+    (function(){
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      if (!isLoggedIn) {
+        alert('Bitte loggen Sie sich ein, um Ihr Profil zu sehen.');
+        window.location.href = 'login.html';
+        return;
+      }
+      // Hide logout if not logged in (shouldn't reach here if not logged in)
+      if(logoutBtn){ logoutBtn.style.display = isLoggedIn ? '' : 'none'; }
+    })();
+    logoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('username');
+      localStorage.removeItem('user');
+      window.location.href = 'index.html';
+    });
+
+    document.getElementById('backBtn').addEventListener('click', ()=> {
+      window.location.href = 'index.html';
+    });
+
+    // User Info anzeigen (aus localStorage)
+    const userInfoDiv = document.getElementById('userInfo');
+    function loadProfile(){
+      const email = localStorage.getItem('userEmail');
+      // Optional gespeicherte Felder
+      let username = localStorage.getItem('username');
+      let role = localStorage.getItem('userRole');
+      // Fallback: historisches 'user' Objekt
+      const userRaw = localStorage.getItem('user');
+      if(!username || !role){
+        try {
+          if(userRaw){
+            const u = JSON.parse(userRaw);
+            username = username || u.username || '';
+            role = role || u.role || '';
+          }
+        } catch {}
+      }
+      const safeEmail = email || '–';
+      const safeUser = username || '–';
+      const safeRole = role || 'Gast';
+      userInfoDiv.innerHTML = `
+        <div class="profile-field"><strong>E-Mail:</strong> <span>${safeEmail}</span></div>
+       
+        <div class="profile-field"><strong>Rolle:</strong> <span>${safeRole}</span></div>
+      `;
+      // E-Mail in Reset-Form vorbefüllen
+      const pwEmail = document.getElementById('pwEmail');
+      if(pwEmail && email){ pwEmail.value = email; }
+  // Adminbereich nur für Admins sichtbar
+  const adminCard = document.getElementById('adminCard');
+  const roleLc = (localStorage.getItem('userRole')||'').toLowerCase();
+  const isAdmin = roleLc === 'admin';
+  if(adminCard){ adminCard.style.display = isAdmin ? '' : 'none'; }
+    }
+    loadProfile();
+
+    // Passwort zurücksetzen via E-Mail
+    const pwForm = document.getElementById('pwResetForm');
+    if(pwForm){
+      pwForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const email = (document.getElementById('pwEmail')?.value||'').trim();
+        const hint = document.getElementById('pwResetHint');
+        const spinner = document.getElementById('pwResetSpinner');
+        const btn = document.getElementById('pwResetBtn');
+        if(!email){ if(hint){ hint.textContent = 'Bitte E-Mail eingeben.'; hint.style.color='var(--color-danger,#c62828)'; } return; }
+        try{
+          if(hint){ hint.textContent='Wird gesendet...'; hint.style.color=''; }
+          if(spinner) spinner.style.display='inline-block';
+          if(btn) { btn.disabled = true; }
+          const res = await fetch(`${baseUrl}/user/forgotPassword/${encodeURIComponent(email)}`, { method: 'GET' });
+          let body = {};
+          try{ body = await res.json(); }catch{}
+          if(!res.ok || body.success===false){
+            if(hint){ hint.textContent = 'Fehler: '+(body.error||res.status); hint.style.color='var(--color-danger,#c62828)'; }
+            return;
+          }
+          if(hint){ hint.textContent='E-Mail zum Zurücksetzen wurde gesendet.'; hint.style.color='var(--color-success,#2e7d32)'; }
+        } catch(err){
+          if(hint){ hint.textContent='Netzwerkfehler: '+err; hint.style.color='var(--color-danger,#c62828)'; }
+        } finally {
+          if(spinner) spinner.style.display='none';
+          if(btn) { btn.disabled = false; }
+        }
+      });
+    }
+
+    // Adminbereich: Rolle setzen (Admin/Gast) per E-Mail
+    const adminForm = document.getElementById('adminRoleForm');
+    if(adminForm){
+      adminForm.addEventListener('submit', async (e)=>{
+        e.preventDefault();
+        const email = (document.getElementById('adminEmail')?.value||'').trim();
+        const roleVal = (adminForm.querySelector('input[name="role"]:checked')?.value||'admin');
+        const roleId = roleVal === 'admin' ? 1 : 2; // Annahme: 1=Admin, 2=Gast
+        const hint = document.getElementById('adminRoleHint');
+        const spinner = document.getElementById('adminRoleSpinner');
+        const btn = document.getElementById('adminRoleBtn');
+        if(!email){ if(hint){ hint.textContent='Bitte E-Mail eingeben.'; hint.style.color='var(--color-danger,#c62828)'; } return; }
+        try{
+          if(hint){ hint.textContent='Wird gesendet...'; hint.style.color=''; }
+          if(spinner) spinner.style.display='inline-block';
+          if(btn) btn.disabled = true;
+          const res = await fetch(`${baseUrl}/user/changeUserRole`, {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json' },
+            body: JSON.stringify({ email, new_role_id: roleId })
+          });
+          let body={};
+          try{ body = await res.json(); }catch{}
+          if(!res.ok || body.success===false){
+            if(hint){ hint.textContent = 'Fehler: '+(body.error||res.status); hint.style.color='var(--color-danger,#c62828)'; }
+            return;
+          }
+          if(hint){ hint.textContent='Rolle erfolgreich gesetzt.'; hint.style.color='var(--color-success,#2e7d32)'; }
+          // Wenn die eigene Rolle geändert wurde, localStorage aktualisieren
+          const myEmail = localStorage.getItem('userEmail');
+          if(myEmail && myEmail.toLowerCase() === email.toLowerCase()){
+            localStorage.setItem('userRole', roleVal === 'admin' ? 'Admin' : 'Gast');
+            // UI aktualisieren
+            loadProfile();
+          }
+        } catch(err){
+          if(hint){ hint.textContent='Netzwerkfehler: '+err; hint.style.color='var(--color-danger,#c62828)'; }
+        } finally {
+          if(spinner) spinner.style.display='none';
+          if(btn) btn.disabled = false;
+        }
+      });
+    }
+
+    // SMTP Config (only visible for admins)
+    const smtpCard = document.getElementById('smtpCard');
+    if (smtpCard) {
+      const roleLc = (localStorage.getItem('userRole') || '').toLowerCase();
+      const isAdmin = roleLc === 'admin';
+      smtpCard.style.display = isAdmin ? '' : 'none';
+    }
+
+    async function loadSMTP() {
+      try {
+        const res = await fetch(`${baseUrl}/settings/smtp`);
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById('smtpServer').value = data.server || '';
+          document.getElementById('smtpPort').value = data.port || '';
+        }
+      } catch (err) {
+        console.error('SMTP load failed', err);
+      }
+    }
+
+    const smtpForm = document.getElementById('smtpForm');
+    if (smtpForm) {
+      smtpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const server = document.getElementById('smtpServer').value.trim();
+        const port = parseInt(document.getElementById('smtpPort').value);
+        const hint = document.getElementById('smtpHint');
+        const spinner = document.getElementById('smtpSpinner');
+        const btn = document.getElementById('smtpSaveBtn');
+
+        if (!server || !port) {
+          hint.textContent = 'Bitte Server und Port angeben.';
+          hint.style.color = 'var(--color-danger,#c62828)';
+          return;
+        }
+
+        try {
+          hint.textContent = 'Wird gespeichert...';
+          spinner.style.display = 'inline-block';
+          btn.disabled = true;
+
+          const res = await fetch(`${baseUrl}/settings/smtp`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ server, port })
+          });
+          const data = await res.json();
+          if (data.success) {
+            hint.textContent = 'SMTP-Einstellungen erfolgreich gespeichert.';
+            hint.style.color = 'var(--color-success,#2e7d32)';
+          } else {
+            hint.textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+            hint.style.color = 'var(--color-danger,#c62828)';
+          }
+        } catch (err) {
+          hint.textContent = 'Netzwerkfehler: ' + err;
+          hint.style.color = 'var(--color-danger,#c62828)';
+        } finally {
+          spinner.style.display = 'none';
+          btn.disabled = false;
+        }
+      });
+
+      loadSMTP();
+    }
+
+    const thresholdCard = document.getElementById('thresholdCard');
+    if (thresholdCard) {
+      const roleLc = (localStorage.getItem('userRole') || '').toLowerCase();
+      const isAdmin = roleLc === 'admin';
+      thresholdCard.style.display = isAdmin ? '' : 'none';
+    }
+
+    async function loadThresholdRecipients() {
+      const container = document.getElementById('thresholdList');
+      container.innerHTML = '';
+      try {
+        const res = await fetch(`${baseUrl}/user/getThresholdRecipients`);
+        const data = await res.json();
+        if (data.success && Array.isArray(data.recipients)) {
+          data.recipients.forEach(email => {
+            const div = document.createElement('div');
+            div.className = 'recipient-entry';
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.alignItems = 'center';
+            div.style.marginBottom = '.4rem';
+            div.innerHTML = `
+              <span>${email}</span>
+              <button class="btn small danger" data-email="${email}">Entfernen</button>
+            `;
+            container.appendChild(div);
+          });
+        }
+      } catch (err) {
+        console.error('Error loading recipients:', err);
+      }
+    }
+
+    document.getElementById('thresholdForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('thresholdEmail').value.trim();
+      const hint = document.getElementById('thresholdHint');
+      if (!email) return;
+
+      try {
+        const res = await fetch(`${baseUrl}/user/setThresholdRecipient`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, enabled: true })
+        });
+        const data = await res.json();
+        if (data.success) {
+          hint.textContent = 'Empfänger hinzugefügt.';
+          hint.style.color = 'var(--color-success,#2e7d32)';
+          document.getElementById('thresholdEmail').value = '';
+          loadThresholdRecipients();
+        } else {
+          hint.textContent = 'Fehler: ' + (data.error || 'Unbekannt');
+          hint.style.color = 'var(--color-danger,#c62828)';
+        }
+      } catch {
+        hint.textContent = 'Netzwerkfehler';
+        hint.style.color = 'var(--color-danger,#c62828)';
+      }
+    });
+
+    // Delete recipient
+    document.addEventListener('click', async (e) => {
+      if (e.target.matches('button[data-email]')) {
+        const email = e.target.getAttribute('data-email');
+        try {
+          await fetch(`${baseUrl}/user/setThresholdRecipient`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, enabled: false })
+          });
+          loadThresholdRecipients();
+        } catch (err) {
+          console.error('Remove failed:', err);
+        }
+      }
+    });
+
+    loadThresholdRecipients();
+  </script>
+</body>
+</html>

@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Virtuyal Luftmessung</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="alternate icon" href="/favicon.svg">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF for PDF export -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>Virtuyal Luftmessung</h1>
+    <div class="header-actions">
+      <button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+      <button id="profileBtn" class="icon-btn" type="button" aria-label="Profil öffnen" title="Profil">
+        <span class="icon-user" aria-hidden="true">👤</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="app-layout">
+    <nav class="sidebar" aria-label="Sensor Auswahl">
+      <div class="sensor-search-wrapper" style="padding: .25rem .5rem .5rem;">
+        <input id="sensorSearch" type="search" placeholder="Sensor / Raum suchen" aria-label="Sensor oder Raum suchen" style="width:100%; padding:.5rem .6rem; border:1px solid var(--border,#ddd); border-radius:.5rem; font-size:.9rem;" />
+      </div>
+      <ul class="sensor-tabs" id="sensorTabs">
+        <!-- Tabs werden dynamisch per JS gerendert -->
+      </ul>
+      <button id="openAddSensor" type="button" class="btn" style="margin-top:.6rem;">+ Sensor hinzufügen</button>
+    </nav>
+  <main>
+    <!-- View Tabs -->
+    <div class="view-tabs" id="viewTabs">
+      <button class="view-tab active" data-view="current" type="button">Aktuelle Messwerte</button>
+      <button class="view-tab" data-view="comparison" type="button">Sensorvergleich</button>
+      <button class="view-tab" data-view="history" type="button">Historie</button>
+    </div>
+
+    <!-- Aktuelle Messwerte Section -->
+    <div id="section-current">
+    <!-- Mock Messwerte -->
+    <div class="sensor-card">
+      <h2>Aktuelle Messwerte <small id="activeSensorLabelCurrent" style="font-weight:400; color:var(--color-text-soft,#666); margin-left:.5rem;"></small></h2>
+      <div class="sensor-list">
+        <div class="metric">🌡 Temperatur: <span id="temperature">-- °C</span></div>
+        <div class="metric">💧 Luftfeuchtigkeit: <span id="humidity">-- %</span></div>
+        <div class="metric">🌬 CO₂: <span id="co2">-- ppm</span></div>
+        <div class="metric">☁ PM2.5: <span id="pm25">-- µg/m³</span></div>
+        <div class="metric">☁ PM10: <span id="pm10">-- µg/m³</span></div>
+        <div class="metric">🧪 TVOC: <span id="tvoc">-- ppb</span></div>
+  <div class="metric">🌫 AQI: <span id="aqi">--</span></div>
+  <div class="metric">🫧 CO: <span id="co">-- ppm</span></div>
+  <div class="metric">⚗ HCHO: <span id="hcho">-- ppm</span></div>
+  <div class="metric">☁ PM0.3: <span id="pm03">-- µg/m³</span></div>
+  <div class="metric">☁ PM1: <span id="pm1">-- µg/m³</span></div>
+      </div>
+    </div>
+
+    <!-- Diagramme -->
+    <div class="sensor-card">
+      <h2>Verlaufsmessungen <small id="activeSensorLabelCharts" style="font-weight:400; color:var(--color-text-soft,#666); margin-left:.5rem;"></small></h2>
+      <div class="chart-controls" style="margin-bottom: 1rem;">
+        <label for="chartRange">Zeitraum:</label>
+        <select id="chartRange" style="margin-left: 0.5rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border,#ddd); border-radius: 0.3rem;">
+          <option value="now">Aktuell</option>
+          <option value="hour" selected>Stunde</option>
+          <option value="day">Tag</option>
+        </select>
+      </div>
+      <canvas id="chartTemperature"></canvas>
+      <canvas id="chartCO2"></canvas>
+      <canvas id="chartHumidity"></canvas>
+      <canvas id="chartPM25"></canvas>
+      <canvas id="chartPM10"></canvas>
+      <canvas id="chartPM03"></canvas>
+      <canvas id="chartPM1"></canvas>
+      <canvas id="chartTVOC"></canvas>
+      <canvas id="chartCO"></canvas>
+      <canvas id="chartHCHO"></canvas>
+    </div>
+    </div>
+
+    <!-- Vergleich Section -->
+    <div id="section-comparison" style="display:none;">
+      <div class="sensor-card">
+        <h2>Sensorvergleich</h2>
+        <div class="comparison-controls">
+          <label for="comparisonMetric">Messgröße:</label>
+          <select id="comparisonMetric">
+            <option value="temp">Temperatur</option>
+            <option value="co2">CO₂</option>
+            <option value="humidity">Luftfeuchtigkeit</option>
+            <option value="pm25">PM2.5</option>
+            <option value="pm10">PM10</option>
+            <option value="tvoc">TVOC</option>
+            <option value="co">CO</option>
+            <option value="hcho">HCHO</option>
+            <option value="pm03">PM0.3</option>
+            <option value="pm1">PM1</option>
+          </select>
+          <label for="comparisonRange" style="margin-left:.75rem;">Zeitraum:</label>
+          <select id="comparisonRange">
+            <option value="now">Aktuell</option>
+            <option value="hour" selected>Stunde</option>
+            <option value="day">Tag</option>
+          </select>
+        </div>
+        <div class="comparison-grid">
+          <div class="comp-chart-item"><canvas id="compSensor0"></canvas><p class="comp-label">Sensor 1</p></div>
+          <div class="comp-chart-item"><canvas id="compSensor1"></canvas><p class="comp-label">Sensor 2</p></div>
+          <div class="comp-chart-item"><canvas id="compSensor2"></canvas><p class="comp-label">Sensor 3</p></div>
+          <div class="comp-chart-item"><canvas id="compSensor3"></canvas><p class="comp-label">Sensor 4</p></div>
+          <div class="comp-chart-item"><canvas id="compSensor4"></canvas><p class="comp-label">Sensor 5</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historie Section -->
+    <div id="section-history" style="display:none;">
+      <div class="sensor-card">
+        <h2>Historie</h2>
+        <div class="history-controls">
+          <label for="historySensor">Sensor:</label>
+          <select id="historySensor"><!-- wird dynamisch gefüllt --></select>
+          <label for="historyMetric">Messgröße:</label>
+          <select id="historyMetric">
+            <option value="temp">Temperatur</option>
+            <option value="co2">CO₂</option>
+            <option value="humidity">Luftfeuchtigkeit</option>
+            <option value="pm25">PM2.5</option>
+            <option value="pm10">PM10</option>
+            <option value="pm03">PM0.3</option>
+            <option value="pm1">PM1</option>
+            <option value="tvoc">TVOC</option>
+            <option value="co">CO</option>
+            <option value="hcho">HCHO</option>
+          </select>
+          <label for="historyRange">Zeitraum:</label>
+          <select id="historyRange">
+            <option value="day">Tag</option>
+            <option value="week">Woche</option>
+            <option value="month">Monat</option>
+            <option value="year">Jahr</option>
+          </select>
+          <button id="historyRefresh" type="button" class="btn" style="width:auto; padding:.55rem 1rem; font-size:.75rem;">Aktualisieren</button>
+          <button id="historyExport" type="button" class="btn" style="width:auto; padding:.55rem 1rem; font-size:.75rem; background:linear-gradient(135deg,#00695c,#009688);">Export CSV</button>
+          <button id="historyExportPdf" type="button" class="btn" style="width:auto; padding:.55rem 1rem; font-size:.75rem; background:linear-gradient(135deg,#2f3b80,#3f51b5);">Export PDF</button>
+        </div>
+        <div class="history-chart-wrapper">
+          <canvas id="historyChart"></canvas>
+          <p id="historyHint" style="margin-top:.5rem; font-size:.8rem; color:var(--color-text-soft,#666);"></p>
+        </div>
+      </div>
+    </div>
+  </main>
+  </div>
+
+  <footer>
+    &copy; 2025 Virtuyal Luftmessung | 
+    <a href="impressum.html" style="color: inherit; text-decoration: underline;">Impressum</a>
+  </footer>
+
+<script>
+  // Auth/UI state: hide logout when not logged in; rerender admin controls on role changes
+  (function(){
+  const baseUrl = (window.location && window.location.origin ? window.location.origin : '') + '/api';
+    function applyAuthUI(){
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const logoutBtn = document.getElementById('logoutBtn');
+      const profileBtn = document.getElementById('profileBtn');
+      if(logoutBtn){ logoutBtn.style.display = isLoggedIn ? '' : 'none'; }
+      if(profileBtn){ profileBtn.style.display = isLoggedIn ? '' : 'none'; }
+      // Admin-only: CSV/PDF Export in History
+      try {
+        const isAdmin = (window.__IS_ADMIN__ && window.__IS_ADMIN__()) || false;
+        const exportBtn = document.getElementById('historyExport');
+        const exportPdfBtn = document.getElementById('historyExportPdf');
+        if (exportBtn) {
+          exportBtn.style.display = isAdmin ? '' : 'none';
+          exportBtn.disabled = !isAdmin;
+          exportBtn.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+        }
+        if (exportPdfBtn) {
+          exportPdfBtn.style.display = isAdmin ? '' : 'none';
+          exportPdfBtn.disabled = !isAdmin;
+          exportPdfBtn.setAttribute('aria-hidden', isAdmin ? 'false' : 'true');
+        }
+      } catch(e) { /* ignore */ }
+      // Re-render sensor tabs so admin-only buttons reflect role
+      if(typeof window.renderSensorTabs === 'function'){ try { window.renderSensorTabs(); } catch(e){} }
+    }
+    async function syncRoleFromServer(){
+      try{
+        const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+        if(!isLoggedIn) return;
+        const email = localStorage.getItem('userEmail');
+        if(!email) return;
+        const res = await fetch(`${baseUrl}/user/getUserRole/${encodeURIComponent(email)}`);
+        if(!res.ok) return;
+        const body = await res.json().catch(()=>({}));
+        if(body && body.success && (body.role || typeof body.role_id !== 'undefined')){
+          const r = (body.role||'').toString().toLowerCase();
+          const rid = body.role_id;
+          const isAdmin = r === 'admin' || r === 'administrator' || rid === 1;
+          const newRole = isAdmin ? 'Admin' : 'Gast';
+          if(localStorage.getItem('userRole') !== newRole){
+            localStorage.setItem('userRole', newRole);
+            applyAuthUI();
+          }
+        }
+      }catch(e){ /* ignore */ }
+    }
+    if(document.readyState === 'loading'){
+      document.addEventListener('DOMContentLoaded', ()=>{ applyAuthUI(); syncRoleFromServer(); });
+    } else { applyAuthUI(); syncRoleFromServer(); }
+    // React to role/login changes (e.g., after login or role update in another tab/page)
+    window.addEventListener('storage', (e)=>{
+      if(e.key === 'isLoggedIn' || e.key === 'userRole'){
+        applyAuthUI();
+      }
+    });
+    // Also re-apply and sync when coming back to the tab
+    window.addEventListener('focus', ()=>{ applyAuthUI(); syncRoleFromServer(); });
+    // Periodically sync role to adopt admin changes quickly
+    setInterval(syncRoleFromServer, 30000);
+  })();
+
+  // Logout: Nur Status entfernen und zur Startseite zurück
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    // Clear all auth-related keys to ensure guest state
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    localStorage.removeItem("username");
+    localStorage.removeItem("user");
+    window.location.href = "index.html";
+  });
+
+  // Profil Button
+  const profileBtn = document.getElementById("profileBtn");
+  if (profileBtn) {
+    profileBtn.addEventListener("click", () => {
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      if (!isLoggedIn) {
+        alert('Bitte loggen Sie sich ein, um Ihr Profil zu sehen.');
+        window.location.href = "login.html";
+        return;
+      }
+      window.location.href = "profil.html";
+    });
+  }
+
+  // Tabs View Umschalten
+  const viewTabs = document.getElementById('viewTabs');
+  const sectionCurrent = document.getElementById('section-current');
+  const sectionComparison = document.getElementById('section-comparison');
+  const sectionHistory = document.getElementById('section-history');
+  if (viewTabs) {
+    viewTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.view-tab');
+      if (!btn) return;
+      const view = btn.dataset.view;
+      viewTabs.querySelectorAll('.view-tab').forEach(b => b.classList.toggle('active', b === btn));
+      const sidebar = document.querySelector('.sidebar');
+      if (view === 'comparison') {
+        sectionCurrent.style.display = 'none';
+        sectionComparison.style.display = '';
+        sectionHistory.style.display = 'none';
+        if(sidebar) sidebar.classList.add('hide-tabs');
+        if (window.initComparisonCharts) { window.initComparisonCharts(); }
+      } else if (view === 'history') {
+        sectionCurrent.style.display = 'none';
+        sectionComparison.style.display = 'none';
+        sectionHistory.style.display = '';
+        if(sidebar) sidebar.classList.add('hide-tabs');
+        if (window.initHistoryChart) { window.initHistoryChart(); }
+      } else {
+        sectionComparison.style.display = 'none';
+        sectionHistory.style.display = 'none';
+        sectionCurrent.style.display = '';
+        if(sidebar) sidebar.classList.remove('hide-tabs');
+      }
+    });
+  }
+</script>
+  <!-- Add / Edit Sensor Modal -->
+  <div id="addSensorModal" class="modal-backdrop" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addSensorTitle">
+      <div class="modal-header">
+        <h3 id="addSensorTitle">Neuen Sensor hinzufügen</h3>
+        <button type="button" class="modal-close" id="closeAddSensor" aria-label="Schließen">✕</button>
+      </div>
+      <form id="addSensorForm" class="modal-body" data-mode="add">
+        <input type="hidden" name="sensorIndex" id="sensorIndex" />
+        <div class="form-grid">
+          <label>Sensorname
+            <input name="name" type="text" required placeholder="z.B. Labor EG" />
+          </label>
+          <label>Klassenraum Nr.
+            <input name="room" type="text" required placeholder="z.B. 2B" />
+          </label>
+          <label>Device ID
+            <input name="deviceId" type="text" required placeholder="1234567890" />
+          </label>
+          <label>Local Key
+            <input name="localKey" type="text" required placeholder="ABC123" />
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelAddSensor" style="background:#6b757c;">Abbrechen</button>
+          <button type="submit" class="btn" id="sensorFormSubmitBtn" style="flex:1;">Speichern</button>
+        </div>
+        <div class="modal-hint-row" style="display:flex; align-items:center; gap:.5rem; margin-top:.6rem;">
+          <p class="modal-hint" id="addSensorHint" style="font-size:.7rem; letter-spacing:.5px; text-transform:uppercase; color:var(--color-text-soft); margin:0;"></p>
+          <span id="addSensorSpinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+<script>
+  // ---------------- Dynamische Sensorverwaltung + Popup ----------------
+  (function(){
+    const baseUrl = (window.location && window.location.origin ? window.location.origin : '') + '/api';
+   
+    function loadCustomSensors(){ try { return JSON.parse(localStorage.getItem('customSensors')||'[]'); } catch(e){ return []; } }
+    function saveCustomSensors(list){ localStorage.setItem('customSensors', JSON.stringify(list)); }
+    function loadOverrides(){ try { return JSON.parse(localStorage.getItem('sensorNameOverrides')||'{}'); } catch(e){ return {}; } }
+    function saveOverrides(obj){ localStorage.setItem('sensorNameOverrides', JSON.stringify(obj)); }
+    
+    function ensureModal(){
+      if(document.getElementById('addSensorModal')) return;
+      const wrapper = document.createElement('div');
+      wrapper.id='addSensorModal';
+      wrapper.className='modal-backdrop';
+      wrapper.style.display='none';
+      wrapper.innerHTML = `
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="addSensorTitle">
+          <div class="modal-header">
+            <h3 id="addSensorTitle">Neuen Sensor hinzufügen</h3>
+            <button type="button" class="modal-close" id="closeAddSensor" aria-label="Schließen">✕</button>
+          </div>
+          <form id="addSensorForm" class="modal-body">
+            <div class="form-grid">
+              <label>Sensorname<input name="name" type="text" required placeholder="z.B. Labor EG" /></label>
+              <label>Klassenraum Nr.<input name="room" type="text" required placeholder="z.B. 2B" /></label>
+              <label>Local Key<input name="localKey" type="text" required placeholder="ABC123" /></label>
+            </div>
+            <div class="modal-actions">
+              <button type="button" class="btn btn-secondary" id="cancelAddSensor">Abbrechen</button>
+              <button type="submit" class="btn" style="flex:1;">Speichern</button>
+            </div>
+            <div class="modal-hint-row" style="display:flex; align-items:center; gap:.5rem; margin-top:.6rem;">
+              <p class="modal-hint" id="addSensorHint" style="margin:0;"></p>
+              <span id="addSensorSpinner" class="spinner" style="display:none;" aria-hidden="true"></span>
+            </div>
+          </form>
+        </div>`;
+      document.body.appendChild(wrapper);
+    }
+    
+    function openSensorModal(mode='add', index=null){
+      ensureModal();
+      const modal = document.getElementById('addSensorModal');
+      const form = document.getElementById('addSensorForm');
+      const title = document.getElementById('addSensorTitle');
+      const submitBtn = document.getElementById('sensorFormSubmitBtn');
+      const hint=document.getElementById('addSensorHint');
+      form.dataset.mode = mode;
+      const nameInput = form.querySelector('input[name="name"]');
+      const roomInput = form.querySelector('input[name="room"]');
+      const deviceId = form.querySelector('input[name="deviceId"]');
+      const keyInput = form.querySelector('input[name="localKey"]');
+      const deviceIdRow = deviceId ? deviceId.closest('label') : null;
+      const keyRow = keyInput ? keyInput.closest('label') : null;
+
+      const hiddenIndex = document.getElementById('sensorIndex');
+      if(mode==='edit' && index!==null){
+        const list = (window.__SENSORS__ && window.__SENSORS__()) || [];
+        const s = list[index];
+        if(!s){ return; }
+        nameInput.value = s.deviceName || '';
+        deviceId.value = s.deviceId || '';
+        roomInput.value = s.classroomNumber || '';
+        keyInput.value = '';
+        hiddenIndex.value = index;
+        title.textContent = 'Sensor bearbeiten';
+        if(submitBtn) submitBtn.textContent = 'Änderungen speichern';
+        if(hint) hint.textContent = `Bearbeiten: ${s.deviceName || ('Sensor '+(index+1))}`;
+        // Device ID & Local Key im Edit-Modus ausblenden
+        if(deviceIdRow) deviceIdRow.style.display = 'none';
+        if(keyRow) keyRow.style.display = 'none';
+        if(deviceId) { deviceId.required = false; }
+        if(keyInput) { keyInput.required = false; }
+      } else {
+        nameInput.value=''; roomInput.value=''; keyInput.value=''; hiddenIndex.value='';
+        title.textContent='Neuen Sensor hinzufügen';
+        if(submitBtn) submitBtn.textContent='Speichern';
+        if(hint) hint.textContent=`Aktuell: ${sensors.length} Sensor(en)`;
+        // Felder einblenden und Anforderungen aktivieren
+        if(deviceIdRow) deviceIdRow.style.display = '';
+        if(keyRow) keyRow.style.display = '';
+        if(deviceId) { deviceId.required = true; deviceId.disabled = false; deviceId.value=''; }
+        if(keyInput) { keyInput.required = true; keyInput.disabled = false; keyInput.value=''; }
+      }
+      modal.style.display='flex';
+      document.body.classList.add('modal-open');
+      setTimeout(()=> nameInput.focus(),30);
+    }
+    const openAddModal = ()=> openSensorModal('add');
+    function closeAddModal(){
+      const modal = document.getElementById('addSensorModal');
+      if(modal) modal.style.display='none';
+      document.body.classList.remove('modal-open');
+    }
+    function bindEvents(){
+      const openBtn=document.getElementById('openAddSensor'); if(openBtn) openBtn.addEventListener('click', (e)=>{ if(!(window.__IS_ADMIN__ && window.__IS_ADMIN__())){ e.preventDefault(); alert('Nur Admins dürfen Sensoren hinzufügen.'); return; } openAddModal(); });
+      document.addEventListener('click', async (e)=>{
+        const editBtn=e.target.closest('.edit-sensor-btn');
+        if(editBtn){
+          if(!(window.__IS_ADMIN__ && window.__IS_ADMIN__())){ alert('Nur Admins dürfen Sensoren bearbeiten.'); return; }
+          const idx=parseInt(editBtn.dataset.index,10);
+          openSensorModal('edit', idx);
+          return;
+        }
+        const delBtn = e.target.closest('.delete-sensor-btn');
+        if(delBtn){
+          if(!(window.__IS_ADMIN__ && window.__IS_ADMIN__())){ alert('Nur Admins dürfen Sensoren löschen.'); return; }
+          // Support deleting both online (by index) and offline (by explicit deviceId) sensors
+          const explicitDeviceId = delBtn.dataset.deviceid;
+          let deviceId = explicitDeviceId || '';
+          let displayName = '';
+          if(!explicitDeviceId){
+            const idx = parseInt(delBtn.dataset.index,10);
+            const list = (window.__SENSORS__ && window.__SENSORS__()) || [];
+            const s = list[idx];
+            if(!s || !s.deviceId){ alert('Sensor nicht gefunden.'); return; }
+            deviceId = s.deviceId;
+            displayName = s.deviceName || s.deviceId;
+          } else {
+            displayName = explicitDeviceId;
+          }
+          if(!deviceId){ alert('Sensor nicht gefunden.'); return; }
+          if(!confirm(`Sensor "${displayName}" wirklich löschen?`)) return;
+            // Optional hint output in the add/edit modal area if present
+            const hint = document.getElementById('addSensorHint');
+            try {
+              if(hint) { hint.textContent='Wird gesendet...'; hint.style.color=''; }
+            const res = await fetch(`${baseUrl}/sensor/delete/${encodeURIComponent(deviceId)}`);
+            // 204 hat i.d.R. keinen Body; wir prüfen nur Status
+            if(res.status === 204 || res.ok){
+              // Liste neu laden
+              if(window.fetchDevices) await window.fetchDevices();
+            } else {
+              // Falls JSON mit Fehlermeldung kommt
+              let body = {};
+              try{ body = await res.json(); }catch{}
+              alert('Löschen fehlgeschlagen: ' + (body.error || res.status));
+            }
+          }catch(err){
+            alert('Netzwerkfehler beim Löschen: ' + err);
+          }
+          return;
+        }
+      });
+      document.getElementById('sensorTabs').addEventListener('click', (e)=>{
+        const tab=e.target.closest('.sensor-tab'); if(!tab) return; if(e.target.closest('.edit-sensor-btn')) return; const idx=parseInt(tab.dataset.sensor,10); if(window.__switchSensor) window.__switchSensor(idx); document.querySelectorAll('#sensorTabs .sensor-tab').forEach(li=>li.classList.toggle('active', li===tab));
+      });
+      // Delegierte Modal-Buttons (weil evtl. dynamisch erstellt)
+      document.addEventListener('click', (e)=>{
+        if(e.target.id==='closeAddSensor' || e.target.id==='cancelAddSensor'){ closeAddModal(); }
+        if(e.target.id==='addSensorModal' && e.target.classList.contains('modal-backdrop')){ closeAddModal(); }
+      });
+      document.addEventListener('submit', async (e)=>{
+        if(e.target && e.target.id==='addSensorForm'){
+          e.preventDefault();
+          const form=e.target;
+          const mode=form.dataset.mode||'add';
+          const fd=new FormData(form);
+          const name=(fd.get('name')||'').toString().trim();
+          const room=(fd.get('room')||'').toString().trim();
+          let deviceId=(fd.get('deviceId')||'').toString().trim();
+          const localKey=(fd.get('localKey')||'').toString().trim();
+          const hint=document.getElementById('addSensorHint');
+          const spinner=document.getElementById('addSensorSpinner');
+          const submitBtn=document.getElementById('sensorFormSubmitBtn');
+          const controls=form.querySelectorAll('input, button');
+          if(mode==='add'){
+            // POST zum Backend
+            try {
+              if(hint) { hint.textContent='Wird gesendet...'; hint.style.color='var(--color-success,#2e7d32)'; }
+              if(spinner) spinner.style.display='inline-block';
+              controls.forEach(el=> el.disabled = true);
+              if(submitBtn) submitBtn.textContent='Senden...';
+              if(!name||!room||!deviceId||!localKey){ if(hint) hint.textContent='Bitte alle Felder ausfüllen.'; return; }
+              const res = await fetch(`${baseUrl}/sensor/add`, {
+                method:'POST',
+                headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify({
+                  device_id: deviceId,
+                  name: name,
+                  local_key: localKey,
+                  classroom_number: room
+                })
+              });
+              const body = await res.json().catch(()=>({}));
+              if(!res.ok || body.success===false){
+                if(hint){ hint.textContent = 'Fehler: '+(body.error||res.status); hint.style.color='var(--color-danger,#c62828)'; }
+                return;
+              }
+              if(hint){ hint.textContent='Erfolgreich hinzugefügt.'; hint.style.color='var(--color-success,#2e7d32)'; }
+              // Geräteliste neu laden
+              if(window.fetchDevices) await window.fetchDevices();
+              form.reset();
+              setTimeout(()=>{ closeAddModal(); }, 600);
+            } catch(err){
+              if(hint){ hint.textContent='Netzwerkfehler: '+err; hint.style.color='var(--color-danger,#c62828)'; }
+              return;
+            } finally {
+              if(spinner) spinner.style.display='none';
+              controls.forEach(el=> el.disabled = false);
+              if(submitBtn) submitBtn.textContent='Speichern';
+            }
+          } else if(mode==='edit'){
+            try{
+              if(hint) { hint.textContent='Wird gesendet...'; hint.style.color=''; }
+              if(spinner) spinner.style.display='inline-block';
+              controls.forEach(el=> el.disabled = true);
+              if(submitBtn) submitBtn.textContent='Speichern...';
+              // Bei disabled Feldern liefert FormData kein deviceId → direkt vom Input lesen
+              if(!deviceId){ const di = form.querySelector('input[name="deviceId"]'); if(di) deviceId = (di.value||'').trim(); }
+              if(!name||!room||!deviceId){ if(hint) { hint.textContent='Bitte Name und Raum angeben.'; hint.style.color='var(--color-danger,#c62828)'; } return; }
+              const res = await fetch(`${baseUrl}/sensor/edit/${encodeURIComponent(deviceId)}`, {
+                method:'PATCH',
+                headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify({ name, room })
+              });
+              let body={};
+              try{ body = await res.json(); }catch{}
+              if(!res.ok || body.success===false){
+                if(hint){ hint.textContent='Fehler beim Speichern: '+(body.error||res.status); hint.style.color='var(--color-danger,#c62828)'; }
+                return;
+              }
+              if(hint){ hint.textContent='Änderungen werden gespeichert...'; hint.style.color='var(--color-success,#2e7d32)'; }
+              if(window.fetchDevices) await window.fetchDevices();
+              setTimeout(()=>{ closeAddModal(); }, 500);
+            } catch(err){
+              if(hint){ hint.textContent='Netzwerkfehler: '+err; hint.style.color='var(--color-danger,#c62828)'; }
+              return;
+            } finally {
+              if(spinner) spinner.style.display='none';
+              controls.forEach(el=> el.disabled = false);
+              if(submitBtn) submitBtn.textContent='Änderungen speichern';
+            }
+          }
+        }
+      });
+    }
+    function start(){
+      renderSensorTabs();
+      // Hide add button for guests as extra safeguard
+      try{
+        const isAdmin = (window.__IS_ADMIN__ && window.__IS_ADMIN__()) || false;
+        const addBtn = document.getElementById('openAddSensor');
+        if(addBtn){ addBtn.style.display = isAdmin ? '' : 'none'; }
+      }catch(e){}
+      bindEvents();
+    }
+    if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded', start); } else { start(); }
+  })();
+</script>
+  <script src="charts-history.js" defer></script>
+  <script src="DataMainpage.js" defer></script>
+</body>
+</html>

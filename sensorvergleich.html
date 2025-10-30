@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Sensorvergleich – Virtuyal</title>
+	<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+	<link rel="alternate icon" href="/favicon.svg">
+	<link rel="stylesheet" href="style.css">
+	<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+	<header>
+		<h1>Sensorvergleich</h1>
+		<div class="header-actions">
+			<button id="logoutBtn" class="logout-btn" type="button">Logout</button>
+			<button id="profileBtn" class="icon-btn" type="button" aria-label="Profil öffnen" title="Profil">
+				<span class="icon-user" aria-hidden="true">👤</span>
+			</button>
+			<a href="index.html" class="btn" style="margin-left:1rem; text-decoration:none;">⬅ Zur Übersicht</a>
+		</div>
+	</header>
+
+	<div class="app-layout">
+		<nav class="sidebar" aria-label="Sensor Auswahl">
+			<ul class="sensor-tabs" id="sensorTabs"><!-- dynamisch via DataMainpage.js --></ul>
+		</nav>
+		<main>
+			<div class="sensor-card">
+				<h2>Sensorvergleich</h2>
+				<div class="comparison-controls">
+					<label for="comparisonMetric">Messgröße:</label>
+					<select id="comparisonMetric">
+						<option value="temp">Temperatur</option>
+						<option value="co2">CO₂</option>
+						<option value="humidity">Luftfeuchtigkeit</option>
+						<option value="pm25">PM2.5</option>
+						<option value="pm10">PM10</option>
+						<option value="tvoc">TVOC</option>
+						<option value="co">CO</option>
+						<option value="hcho">HCHO</option>
+						<option value="pm03">PM0.3</option>
+						<option value="pm1">PM1</option>
+					</select>
+					<label for="comparisonRange" style="margin-left:.75rem;">Zeitraum:</label>
+					<select id="comparisonRange">
+						<option value="now">Aktuell</option>
+						<option value="hour">Stunde</option>
+						<option value="day">Tag</option>
+					</select>
+				</div>
+				<div class="comparison-grid"><!-- Charts dynamisch --></div>
+			</div>
+		</main>
+	</div>
+
+	<footer>&copy; 2025 Virtuyal Luftmessung</footer>
+
+	<script>
+		// Logout: Nur Status löschen und zur Übersicht
+		document.getElementById('logoutBtn').addEventListener('click', ()=>{
+			localStorage.removeItem('isLoggedIn');
+			window.location.href = 'index.html';
+		});
+		// Profil
+		document.getElementById('profileBtn').addEventListener('click', ()=>{
+			window.location.href = 'profil.html';
+		});
+		// Init Vergleich nach Laden
+		window.addEventListener('DOMContentLoaded', ()=>{
+			if (window.initComparisonCharts) window.initComparisonCharts();
+		});
+	</script>
+	<script src="DataMainpage.js" defer></script>
+</body>
+</html>
